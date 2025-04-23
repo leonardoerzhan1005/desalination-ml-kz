@@ -21,10 +21,7 @@ venv/
 
 
 # Data files
-*.csv
-data/prediction_history.csv
-data/grafik.png
-data/output.pdf
+
 
 # System
 .DS_Store
