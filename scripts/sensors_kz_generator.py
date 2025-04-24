@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 regions = ['Маңғыстау', 'Қызылорда', 'Алматы', 'Қостанай', 'Атырау']
-n = 200
+n = 300
 np.random.seed(77)
 
 data = []
