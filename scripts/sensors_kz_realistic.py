@@ -22,7 +22,7 @@ regions = {
 
 start_time = datetime(2024, 7, 1, 0, 0, 0)
 data = []
-n = 15000
+n = 500
 
 for i in range(n):
     region = random.choice(list(regions.keys()))
