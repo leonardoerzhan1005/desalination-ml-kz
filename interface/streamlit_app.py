@@ -138,20 +138,8 @@ with st.expander("ℹ️ Анықтама"):
     - **7-кезең**: Өңірлер бойынша шығындарды салыстырыңыз.
     """)
 
-# Interactive tour
-if st.button("📖 Интерактивті нұсқаулық"):
-    st.session_state['tour_step'] = 0
-tour_step = st.session_state.get('tour_step', -1)
-if tour_step == 0:
-    st.info("1. 'Өңірді таңдаңыз' ашып, талдау үшін өңірді таңдаңыз.")
-    if st.button("Келесі"):
-        st.session_state['tour_step'] += 1
-        st.rerun()
-elif tour_step == 1:
-    st.info("2. 6-кезеңде параметрлерді реттеп, тұщыландыру нәтижелерін көріңіз.")
-    if st.button("Аяқтау"):
-        st.session_state['tour_step'] = -1
-        st.rerun()
+# Display the "Interactive Tutorial" label without functionality
+st.markdown("📖 Интерактивті нұсқаулық")
 
 # Tabs for each stage
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
@@ -284,7 +272,7 @@ with tab5:
 # Stage 6: Two-Stage Desalination (Enhanced)
 with tab6:
     st.markdown('<div class="stage-title">💧 6. Екі кезеңді тұщыландыру – Толық талдау</div>', unsafe_allow_html=True)
-    st.markdown('<div class="info-box">Нанофильтрация және кері осмос арқылы судың тұздылығын азайту. Параметрлерді реттеп, энергия мен шығындарды есептеңіз.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="info-box">Нанофильтрация және кері осмос арқылы судың тұздылығын азайту. Өңір мен әдісті таңдап, тиімділікті салыстырыңыз.</div>', unsafe_allow_html=True)
 
     st.markdown(r"""
     ### 📚 Процесс түсіндірмесі
@@ -302,24 +290,63 @@ with tab6:
     if example is None:
         st.warning("Алдыңғы кезеңде деректер таңдалмаған. 'Нанофильтрация' немесе 'кері осмос' әдісі бар өңірді таңдаңыз.")
     else:
-        st.subheader("⚙️ Параметрлерді реттеу")
-        scenario = st.selectbox("Сценарий таңдаңыз", ["Қалыпты жұмыс", "Жоғары тұздылық", "Мембрана ластануы"])
-        initial_salinity = float(example['тұздылық'])
-        energy_efficiency = float(example['фильтр_тиімділігі'])
-        if scenario == "Жоғары тұздылық":
-            initial_salinity = min(initial_salinity * 1.5, 15000)
-        elif scenario == "Мембрана ластануы":
-            energy_efficiency = max(energy_efficiency * 0.7, 0.7)
+        st.subheader("⚙️ Өңір және әдіс бойынша тиімділікті салыстыру")
+        # Select region and method
+        region = st.selectbox("Өңірді таңдаңыз:", sorted(df["өңір"].unique()), key="region_select_tab6")
+        method = st.selectbox("Әдісті таңдаңыз:", ["кері осмос", "нанофильтрация"], key="method_select")
 
+        # Calculate region-specific averages from dataset
+        region_data = df[df["өңір"] == region]
+        avg_salinity = region_data["тұздылық"].mean()
+        avg_pressure = region_data["кіру_қысымы"].mean()
+        avg_efficiency = region_data["фильтр_тиімділігі"].mean()
+        avg_flow_rate = 5.0  # Default value
+        avg_r_nano = 0.6 if method == "нанофильтрация" else 0.5
+        avg_r_ro = 0.95 if method == "кері осмос" else 0.9
+
+        # Initialize session state for parameters
+        if 'initial_salinity' not in st.session_state:
+            st.session_state.initial_salinity = float(avg_salinity)
+        if 'r_nano' not in st.session_state:
+            st.session_state.r_nano = avg_r_nano
+        if 'r_ro' not in st.session_state:
+            st.session_state.r_ro = avg_r_ro
+        if 'input_pressure' not in st.session_state:
+            st.session_state.input_pressure = float(avg_pressure)
+        if 'flow_rate' not in st.session_state:
+            st.session_state.flow_rate = avg_flow_rate
+        if 'energy_efficiency' not in st.session_state:
+            st.session_state.energy_efficiency = float(avg_efficiency)
+
+        # Button to load region averages
+        if st.button("Өңірдің орташа параметрлерін жүктеу"):
+            st.session_state.initial_salinity = float(avg_salinity)
+            st.session_state.r_nano = avg_r_nano
+            st.session_state.r_ro = avg_r_ro
+            st.session_state.input_pressure = float(avg_pressure)
+            st.session_state.flow_rate = avg_flow_rate
+            st.session_state.energy_efficiency = float(avg_efficiency)
+            st.rerun()
+
+        # Sliders for manual parameter adjustment
+        st.markdown("### Параметрлерді реттеу")
         col1, col2 = st.columns(2)
         with col1:
-            initial_salinity = st.slider("Бастапқы тұздылық (ppm)", 1000.0, 15000.0, initial_salinity, step=100.0)
-            r_nano = st.slider("Нанофильтрация тиімділігі (R_nano)", 0.5, 0.8, 0.6, step=0.01)
-            r_ro = st.slider("Кері осмос тиімділігі (R_ro)", 0.9, 0.98, 0.95, step=0.01)
+            st.session_state.initial_salinity = st.slider("Бастапқы тұздылық (ppm)", 1000.0, 15000.0, st.session_state.initial_salinity, step=100.0)
+            st.session_state.r_nano = st.slider("Нанофильтрация тиімділігі (R_nano)", 0.5, 0.8, st.session_state.r_nano, step=0.01)
+            st.session_state.r_ro = st.slider("Кері осмос тиімділігі (R_ro)", 0.9, 0.98, st.session_state.r_ro, step=0.01)
         with col2:
-            input_pressure = st.slider("Кіріс қысымы (бар)", 2.0, 7.0, float(example['кіру_қысымы']), step=0.1)
-            flow_rate = st.slider("Кіріс ағыны (м³/сағ)", 1.0, 10.0, 5.0, step=0.5)
-            energy_efficiency = st.slider("Энергия тиімділігі (η)", 0.7, 0.9, energy_efficiency, step=0.01)
+            st.session_state.input_pressure = st.slider("Кіріс қысымы (бар)", 2.0, 7.0, st.session_state.input_pressure, step=0.1)
+            st.session_state.flow_rate = st.slider("Кіріс ағыны (м³/сағ)", 1.0, 10.0, st.session_state.flow_rate, step=0.5)
+            st.session_state.energy_efficiency = st.slider("Энергия тиімділігі (η)", 0.7, 0.9, st.session_state.energy_efficiency, step=0.01)
+
+        # Retrieve values from session state
+        initial_salinity = st.session_state.initial_salinity
+        r_nano = st.session_state.r_nano
+        r_ro = st.session_state.r_ro
+        input_pressure = st.session_state.input_pressure
+        flow_rate = st.session_state.flow_rate
+        energy_efficiency = st.session_state.energy_efficiency
 
         # Calculations
         sal_nano = initial_salinity * (1 - r_nano)
@@ -343,19 +370,6 @@ with tab6:
         fig_stages.add_bar(x=stages_df["Кезең"], y=[initial_salinity, sal_nano, sal_ro], name="Тұздылық", opacity=0.3)
         st.plotly_chart(fig_stages, use_container_width=True)
 
-        # Cost breakdown
-        st.subheader("💸 Шығындар құрылымы")
-        cost_breakdown = pd.DataFrame({
-            "Компонент": ["Энергия", "Техникалық қызмет", "Мембрана жасы"],
-            "Шығын ($/м³)": [
-                total_energy * 0.1,
-                0.2 if example['техникалық_жағдай'] else 0.05,
-                0.01 * (example['мембрана_жасы'] / 365)
-            ]
-        })
-        fig_cost_breakdown = px.pie(cost_breakdown, values="Шығын ($/м³)", names="Компонент", title="Операциялық шығындардың құрылымы", template=theme)
-        st.plotly_chart(fig_cost_breakdown, use_container_width=True)
-
         # Results
         st.subheader("📈 Нәтижелер")
         st.markdown(f"""
@@ -369,19 +383,101 @@ with tab6:
 
         # Optimization
         st.subheader("🔧 Оптимизация")
-        target_salinity = st.number_input("Мақсатты тұздылық (ppm)", 100, 500, 500)
-        def objective(params):
+        st.markdown("Оптимизируйте процесс, выбрав цель и диапазон целевой солёности.")
+
+        # Select optimization objective
+        optimization_goal = st.selectbox(
+            "Цель оптимизации:",
+            ["Минимизация затрат", "Минимизация энергопотребления", "Баланс затрат и энергии"],
+            key="optimization_goal"
+        )
+
+        # Input for salinity range
+        col_sal1, col_sal2 = st.columns(2)
+        with col_sal1:
+            min_salinity = st.number_input("Минимальная целевая солёность (ppm)", 100, 500, 300, step=10)
+        with col_sal2:
+            max_salinity = st.number_input("Максимальная целевая солёность (ppm)", min_salinity, 500, 500, step=10)
+
+        # Define objective function
+        def objective_function(params, goal=optimization_goal):
             r_nano, r_ro, pressure = params
             sal_nano = initial_salinity * (1 - r_nano)
             sal_ro = sal_nano * (1 - r_ro)
             energy = (pressure * flow_rate * (1.5 if r_ro > 0.95 else 1.0)) / (energy_efficiency * 3600)
             cost = energy * 0.1 + (0.2 if example['техникалық_жағдай'] else 0.05) + 0.01 * (example['мембрана_жасы'] / 365)
-            return cost if sal_ro <= target_salinity else cost + 1000
-        result = minimize(objective, [0.6, 0.95, 4.5], bounds=[(0.5, 0.8), (0.9, 0.98), (2.0, 7.0)])
+            
+            # Penalty for salinity outside target range
+            penalty = 0
+            if sal_ro < min_salinity or sal_ro > max_salinity:
+                penalty = 1000 + abs(sal_ro - (min_salinity + max_salinity) / 2) * 10
+            
+            # Define objective based on goal
+            if goal == "Минимизация затрат":
+                return cost + penalty
+            elif goal == "Минимизация энергопотребления":
+                return energy + penalty
+            else:  # Баланс затрат и энергии
+                return (cost + energy) / 2 + penalty
+
+        # Run optimization
+        initial_guess = [r_nano, r_ro, input_pressure]
+        bounds = [(0.5, 0.8), (0.9, 0.98), (2.0, 7.0)]
+        result = minimize(objective_function, initial_guess, bounds=bounds, method='SLSQP')
+
         if result.success:
-            st.write(f"Оптималды параметрлер: R_nano={result.x[0]:.2f}, R_ro={result.x[1]:.2f}, Қысым={result.x[2]:.2f} бар, Шығын={result.fun:.2f} $/м³")
+            opt_r_nano, opt_r_ro, opt_pressure = result.x
+            # Calculate optimized values
+            opt_sal_nano = initial_salinity * (1 - opt_r_nano)
+            opt_sal_ro = opt_sal_nano * (1 - opt_r_ro)
+            opt_energy = (opt_pressure * flow_rate * (1.5 if opt_r_ro > 0.95 else 1.0)) / (energy_efficiency * 3600)
+            opt_cost = opt_energy * 0.1 + (0.2 if example['техникалық_жағдай'] else 0.05) + 0.01 * (example['мембрана_жасы'] / 365)
+
+            st.success(f"""
+            Оптималды параметрлер:
+            - R_nano: **{opt_r_nano:.2f}**
+            - R_ro: **{opt_r_ro:.2f}**
+            - Қысым: **{opt_pressure:.2f} бар**
+            - Соңғы тұздылық: **{opt_sal_ro:.2f} ppm**
+            - Энергия шығыны: **{opt_energy:.2f} кВт·сағ/м³**
+            - Операциялық шығын: **{opt_cost:.2f} $/м³**
+            """)
+
+            # Comparison table
+            comparison_df = pd.DataFrame({
+                "Параметр": ["R_nano", "R_ro", "Қысым (бар)", "Соңғы тұздылық (ppm)", "Энергия шығыны (кВт·сағ/м³)", "Операциялық шығын ($/м³)"],
+                "Текущие": [r_nano, r_ro, input_pressure, sal_ro, total_energy, operational_cost],
+                "Оптимальные": [opt_r_nano, opt_r_ro, opt_pressure, opt_sal_ro, opt_energy, opt_cost]
+            })
+            comparison_df["Текущие"] = comparison_df["Текущие"].round(2)
+            comparison_df["Оптимальные"] = comparison_df["Оптимальные"].round(2)
+            st.subheader("Сравнение текущих и оптимальных параметров")
+            st.dataframe(comparison_df, use_container_width=True)
+
+            # Visualization
+            st.subheader("Визуализация оптимизации")
+            fig_opt = go.Figure(data=[
+                go.Bar(name="Текущие", x=["R_nano", "R_ro", "Қысым", "Тұздылық", "Энергия", "Шығын"],
+                       y=[r_nano, r_ro, input_pressure, sal_ro, total_energy, operational_cost]),
+                go.Bar(name="Оптимальные", x=["R_nano", "R_ro", "Қысым", "Тұздылық", "Энергия", "Шығын"],
+                       y=[opt_r_nano, opt_r_ro, opt_pressure, opt_sal_ro, opt_energy, opt_cost])
+            ])
+            fig_opt.update_layout(
+                title="Сравнение текущих и оптимальных параметров",
+                barmode='group',
+                template=theme,
+                yaxis_title="Значение",
+                height=500
+            )
+            st.plotly_chart(fig_opt, use_container_width=True)
         else:
-            st.error("Оптимизация сәтсіз аяқталды.")
+            st.error("Оптимизация не удалась. Возможные причины:")
+            st.markdown("""
+            - Целевая солёность недостижима с текущими параметрами. Попробуйте:
+              - Увеличить диапазон целевой солёности.
+              - Увеличить эффективность фильтрации (R_nano, R_ro) в слайдерах.
+            - Ограничения на параметры слишком строгие. Проверьте входные значения.
+            """)
 
         # Recommendations
         st.subheader("💡 Ұсыныстар")

@@ -1,0 +1,2 @@
+streamlit run interface/streamlit_app.py
+python scripts/sensors_kz_realistic.py  
